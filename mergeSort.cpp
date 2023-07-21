@@ -7,7 +7,8 @@ using namespace std;
 
 
 
-int NUM_THREADS(0);
+std::atomic<int> NUM_THREADS(0);
+
 
 #define MAX_THREADS 100
 
@@ -55,31 +56,31 @@ void merge(int* arr, int l, int m, int r)
    }
 }
 
-void mergeSort(int* arr, int l, int r){
+void mergeSort(int* arr, int l, int r,std::atomic<int>&s){
    if(l>=r){
       return;
    }
    int m=(l+r-1)/2;
 
-   if(NUM_THREADS<MAX_THREADS){
+   if(NUM_THREADS.load()<MAX_THREADS){
 
       bool b1=true,b2=true;
 
       future<void> f1,f2;
 
       try{
-	      f1 = async(launch::async,mergeSort,  arr,l,m);
+	      f1 = async(launch::async,mergeSort,  arr,l,m,std::ref(NUM_THREADS));
           NUM_THREADS++;
 	  }catch(...){
-          mergeSort( arr,l,m);
+          mergeSort( arr,l,m,s);
 		  b1=false;
 	  }
 
       try{
-          f2 = async(launch::async,mergeSort,  arr,m+1,r);
+          f2 = async(launch::async,mergeSort,  arr,m+1,r,std::ref(NUM_THREADS));
           NUM_THREADS++;
 	  }catch(...){
-          mergeSort( arr,m+1,r);
+          mergeSort( arr,m+1,r,s);
 		  b2=false;	  
       }
 
@@ -102,8 +103,8 @@ void mergeSort(int* arr, int l, int r){
 
    }else{
       cout <<  "::2" <<endl;
-      mergeSort( arr,l,m);
-      mergeSort( arr,m+1,r);
+      mergeSort( arr,l,m,s);
+      mergeSort( arr,m+1,r,s);
    }
 
    merge(arr,l,m,r);   
@@ -121,7 +122,7 @@ void out_arr(int* a,int sz){
 
 int main(){
    vector<int> v1={1,45,2,-100,6,13,474,-23,-89,-100,8,4000,5,-4,2,6,2,-8,8,0};
-   mergeSort(v1.data(), 0, v1.size()-1);
+   mergeSort(v1.data(), 0, v1.size()-1,std::ref(NUM_THREADS));
    out_arr(v1.data(),v1.size());
    return 0;
 }

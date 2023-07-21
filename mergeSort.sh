@@ -1,2 +1,2 @@
 #!/bin/bash
-g++ -pthread mergeSort.cpp -o ms && ./ms
+g++ -pthread -fsanitize=thread mergeSort.cpp -o ms && ./ms
